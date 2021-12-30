@@ -1,7 +1,7 @@
 {
     "name": "chickynoid",
     "scripts": {
-        "start": "rojo serve",
-        "build": "rojo build --output Chickynoid.rbxl"
+        "start": "rojo serve dev.project.json",
+        "build": "rojo build --output Chickynoid.rbxl dev.project.json"
     }
 }

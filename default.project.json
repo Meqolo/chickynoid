@@ -1,64 +1,6 @@
 {
   "name": "Chickynoid",
   "tree": {
-    "$className": "DataModel",
-    "ReplicatedStorage": {
-      "Packages": {
-        "Chickynoid": {
-          "$path": "src"
-        }
-      }
-    },
-    "ServerScriptService": {
-      "Server": {
-        "$path": "example/server"
-      }
-    },
-    "StarterPlayer": {
-      "StarterPlayerScripts": {
-        "Client": {
-          "$path": "example/client"
-        }
-      }
-    },
-    "Players": {
-      "$className": "Players",
-      "$properties": {
-        "CharacterAutoLoads": false
-      }
-    },
-    "Workspace": {
-      "$path": "example/workspace",
-      "$ignoreUnknownInstances": true,
-      "$properties": {
-        "FilteringEnabled": true
-      }
-    },
-    "Lighting": {
-      "$path": "example/lighting",
-      "$properties": {
-        "Ambient": [
-          0.27,
-          0.27,
-          0.27
-        ],
-        "OutdoorAmbient": [
-          0.27,
-          0.27,
-          0.27
-        ],
-        "Brightness": 3,
-        "GlobalShadows": true,
-        "Technology": "ShadowMap",
-        "EnvironmentDiffuseScale": 1,
-        "EnvironmentSpecularScale": 1,
-        "ClockTime": 14.5
-      }
-    },
-    "SoundService": {
-      "$properties": {
-        "RespectFilteringEnabled": true
-      }
-    }
+    "$path": "src"
   }
 }

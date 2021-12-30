@@ -3,6 +3,6 @@
 registry = "test"
 
 [[package]]
-name = "brooke/chickynoid"
+name = "mrchickenrobot/chickynoid"
 version = "0.1.0"
 dependencies = []

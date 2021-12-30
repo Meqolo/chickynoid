@@ -1,6 +1,8 @@
 [package]
-name = "brooke/chickynoid"
+name = "mrchickenrobot/chickynoid"
+description = "Chickynoid is a server-authoritative networking character controller for Roblox."
 version = "0.1.0"
+license = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
