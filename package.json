@@ -1,7 +1,12 @@
 {
     "name": "chickynoid",
     "scripts": {
-        "start": "rojo serve dev.project.json",
+        "start": "concurrently \"npm run watch\" \"moonwave dev\"",
+        "watch": "rojo serve dev.project.json",
         "build": "rojo build --output Chickynoid.rbxl dev.project.json"
+    },
+    "devDependencies": {
+        "concurrently": "^6.5.1",
+        "moonwave": "^0.3.2"
     }
 }

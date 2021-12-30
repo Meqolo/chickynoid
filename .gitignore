@@ -6,4 +6,5 @@
 /*.rbxl.lock
 
 Packages/
+node_modules/
 roblox.toml

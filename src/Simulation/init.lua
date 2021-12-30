@@ -236,7 +236,7 @@ function Simulation:DoGroundCheck(pos, feetHeight)
         local dif = raycastResult.Position.y - self.pos.y
         if dif < feetHeight then
             onGround = raycastResult
-            ---print("og")
+            --print("og")
         elseif dif < 0 then --Something is touching our sphere between the middle and the feet
             onLedge = raycastResult
             --print("ledge")
