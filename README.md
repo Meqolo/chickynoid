@@ -74,9 +74,9 @@ The rest of it is just smoke and mirrors to make this still feel good and not la
 
 The main idea is the "command". Every frame the client generates a command, applies it to their local copy of the character (causing the player to simulate for 1 frame), and sends the same input to the server, which does the same thing.
 
-The server, because it owns the authoritive version of the characters, tells the player what the state of the character actually is, and which commands it has seen and processed so far.
+The server, because it owns the authoritative version of the characters, tells the player what the state of the character actually is, and which commands it has seen and processed so far.
 
-If the client disagrees, this is called a mispredict, and forces a resimulation (or rollback!). What this means is the client resets to the last known good state from the server, and then **instantly** re-applies all of the remaining unconfirmed inputs to put the player back exactly where they were. If it all goes well, visually, the player should see little to no difference, and the game continues. If it doesn't go well, the player will feel a "tug" to correct them.\
+If the client disagrees, this is called a mispredict, and forces a resimulation (or rollback!). What this means is the client resets to the last known good state from the server, and then **instantly** re-applies all of the remaining unconfirmed commands to put the player back exactly where they were. If it all goes well, visually, the player should see little to no difference, and the game continues. If it doesn't go well, the player will feel a "tug" to correct them.
 
 
 ## Explanation V2 (bad math)
