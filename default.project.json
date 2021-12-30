@@ -4,7 +4,6 @@
     "$className": "DataModel",
     "ReplicatedStorage": {
       "Packages": {
-        "$path": "Packages",
         "Chickynoid": {
           "$path": "src"
         }
