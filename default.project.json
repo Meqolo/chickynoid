@@ -22,6 +22,12 @@
         }
       }
     },
+    "Players": {
+      "$className": "Players",
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
+    },
     "Workspace": {
       "$path": "example/workspace",
       "$ignoreUnknownInstances": true,
