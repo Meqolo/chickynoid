@@ -23,43 +23,31 @@
       }
     },
     "Workspace": {
+      "$path": "example/workspace",
+      "$ignoreUnknownInstances": true,
       "$properties": {
         "FilteringEnabled": true
-      },
-      "Baseplate": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true,
-          "Color": [
-            0.38823,
-            0.37254,
-            0.38823
-          ],
-          "Locked": true,
-          "Position": [
-            0,
-            -10,
-            0
-          ],
-          "Size": [
-            512,
-            20,
-            512
-          ]
-        }
       }
     },
     "Lighting": {
+      "$path": "example/lighting",
       "$properties": {
         "Ambient": [
-          0,
-          0,
-          0
+          0.27,
+          0.27,
+          0.27
         ],
-        "Brightness": 2,
+        "OutdoorAmbient": [
+          0.27,
+          0.27,
+          0.27
+        ],
+        "Brightness": 3,
         "GlobalShadows": true,
-        "Outlines": false,
-        "Technology": "Voxel"
+        "Technology": "ShadowMap",
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1,
+        "ClockTime": 14.5
       }
     },
     "SoundService": {
