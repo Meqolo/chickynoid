@@ -1,4 +1,6 @@
 local Simulation = {}
+Simulation.__index = Simulation
+
 Simulation.sweepModule = require(script.SweepModule)
 
 function Simulation.new()
@@ -117,17 +119,17 @@ function Simulation:ProcessCommand(cmd)
     self.vel = Vector3.new(flatVel.x, self.vel.y, flatVel.z)
 
     --Do jumping?
-    --if (onGround ~= nil) then
-    if self.jump > 0 then
-        self.jump -= cmd.deltaTime
-    end
+    if onGround ~= nil then
+        if self.jump > 0 then
+            self.jump -= cmd.deltaTime
+        end
 
-    --jump!
-    if cmd.y > 0 and self.jump <= 0.025 then
-        self.vel += Vector3.new(0, jumpPunch * (1 + self.jump), 0)
-        self.jump = 0.2
+        --jump!
+        if cmd.y > 0 and self.jump <= 0 then
+            self.vel += Vector3.new(0, jumpPunch * (1 + self.jump), 0)
+            self.jump = 0.2
+        end
     end
-    --end
 
     --Gravity
     if onGround == nil then
