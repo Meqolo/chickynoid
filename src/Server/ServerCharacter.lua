@@ -41,6 +41,10 @@ function ServerCharacter.new(player: Player)
     -- For now, just delete it server-side.
     self._simulation.debugModel:Destroy()
 
+    self._transport.onEventReceived:Connect(function(event)
+        self:_handleClientEvent(event)
+    end)
+
     self:_spawnCharacter()
 
     return self
@@ -89,6 +93,22 @@ function ServerCharacter:Heartbeat(_dt: number)
         -- Send that event and any others which have occured since the last
         -- replication (character spawns, etc).
         self._transport:Flush()
+    end
+end
+
+--[=[
+    Callback for handling all events from the client.
+
+    @param event table -- The event sent by the client.
+    @private
+]=]
+function ServerCharacter:_handleClientEvent(event: table)
+    print("Got event from client")
+    if event.type == EventType.Command then
+        local command = event.data.command
+        if command and typeof(command) == "table" then
+            table.insert(self._unprocessedCommands, command)
+        end
     end
 end
 

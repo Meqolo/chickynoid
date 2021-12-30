@@ -5,4 +5,9 @@ registry = "test"
 [[package]]
 name = "mrchickenrobot/chickynoid"
 version = "0.1.0"
+dependencies = [["Signal", "sleitnick/signal@1.0.1"]]
+
+[[package]]
+name = "sleitnick/signal"
+version = "1.0.1"
 dependencies = []

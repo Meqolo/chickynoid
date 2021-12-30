@@ -15,6 +15,9 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Packages = ReplicatedStorage.Packages
+local Signal = require(Packages.Signal)
+
 local REMOTE_NAME = "Chickynoid_Replication"
 local CachedRemote: RemoteEvent
 
@@ -28,8 +31,17 @@ ServerTransport.__index = ServerTransport
 function ServerTransport.new(player: Player)
     local self = setmetatable({
         player = player,
+        onEventReceived = Signal.new(),
         _eventQueue = {},
     }, ServerTransport)
+
+    local event = self:_getRemoteEvent()
+    event.OnServerEvent:Connect(function(eventPlayer, event)
+        if eventPlayer ~= player then
+            return
+        end
+        self.onEventReceived:Fire(event)
+    end)
 
     return self
 end
@@ -43,7 +55,7 @@ end
 function ServerTransport:QueueEvent(eventType: number, event: table)
     table.insert(self._eventQueue, {
         type = eventType,
-        event = event,
+        data = event,
     })
 end
 
