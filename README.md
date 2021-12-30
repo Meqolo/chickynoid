@@ -11,6 +11,7 @@ Fair warning, this is not ready for production in it's current form.
 Feel free to have a look at it and see how it does what it does, though!
 
 
+## 
 
 **What is it?**
 
@@ -51,7 +52,7 @@ Your character is a ball, not a nice physically accurate mess like roblox uses.
 
 
 
-**Whats todo**
+## **Whats todo**
 
 Buffer underrun detection "Antiwarp" (so technically freezing your character is still possible right now)
 
@@ -65,35 +66,35 @@ All the nice stuff surrounding controls like mobile controls and bindings
 
 ## How does it do it?
 
-Rollback networking is just a new name for a really old technique I think that was invented first by John Carmack in the quake series.
+Rollback networking is just a new name for a really old technique I think was invented first by John Carmack in the quake series.
 
 The principle is that the real ground-truth version of your player only exists on the server, and the client sends inputs to the server to move it around.
 
 The rest of it is just smoke and mirrors to make this still feel good and not laggy for the player, which is sometimes called player prediction.
 
-The main idea is the "command". Every frame the client generates a comamnd, applies it to their local copy of the character (causing the player to simulate for 1 frame), and sends the same input to the server, which does the same thing.
+The main idea is the "command". Every frame the client generates a command, applies it to their local copy of the character (causing the player to simulate for 1 frame), and sends the same input to the server, which does the same thing.
 
-The server, because it owns the authoritive version of the players, tells the player what the result of all the current commands it knows about are.
+The server, because it owns the authoritive version of the characters, tells the player what the state of the character actually is, and which commands it has seen and processed so far.
 
-The server sends the validated view back to the client, and if the client disagrees, this is called a mispredict, and forces a resimulation (or rollback!) using all the currently unconfirmed client commands.
-
-Maybe better explained via math?
+If the client disagrees, this is called a mispredict, and forces a resimulation (or rollback!). What this means is the client resets to the last known good state from the server, and then **instantly** re-applies all of the remaining unconfirmed inputs to put the player back exactly where they were. If it all goes well, visually, the player should see little to no difference, and the game continues. If it doesn't go well, the player will feel a "tug" to correct them.\
 
 
-A **Command** = the current sample of player inputs (what buttons they're holding, where they're aiming with the mouse etc) 
+## Explanation V2 (bad math)
+\
+So the current state of the game for a single player game might be written as:\
+\
+`State of game = SUM(commands since game began)`
+\
+\
+Where a **Command** is just whatever inputs the player was holding down that frame
 
-So the current state of the game for a single player game might be written as:
-
-`State of game = SUM(All commands since game began)`
-
-
-**So in Chicknoid:**
-
-
-
+\
+**So in Chickynoid:**\
+\
+\
 **On the server:**
-`State of game = SUM(All confirmed player commands)`
-
+`State of game = SUM(All confirmed player commands)`\
+\
 **On the client:**
 `State of game = (Last State of Game from server) + SUM(All unconfirmed player commands)`
 
