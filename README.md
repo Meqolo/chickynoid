@@ -22,7 +22,7 @@ It consists of the chickynoid character controller, a character 'renderer' (TBD)
 
 **What does it do?**
 
-Chickynoid heavily borrows from the same principals that games like quake, cod, overwatch, and other first person shooters use to prevent fly hacking, teleporting, and other "typical" character hacks that roblox is typically vulnerable to.
+Chickynoid heavily borrows from the same principles that games like quake, cod, overwatch, and other first person shooters use to prevent fly hacking, teleporting, and other "typical" character hacks that roblox is typically vulnerable to.
 
 It implements a full character controller and character physics using nothing but raycasts (Spherecast when pls roblox?), and trusts nothing from the client except input directions and buttons (and to a limited degree dt).
 
