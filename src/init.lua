@@ -3,7 +3,7 @@
 local RunService = game:GetService("RunService")
 
 if RunService:IsClient() then
-    return require(script.client)
+    return require(script.Client)
 else
-    return require(script.server)
+    return require(script.Server)
 end
