@@ -24,6 +24,7 @@ function PlayerData:Spawn()
             table.insert(list, value)
         end
     end
+
     if #list > 0 then
         local spawn = list[math.random(1, #list)]
         self.chickynoid.pos = (Vector3.new(spawn.Position.x, spawn.Position.y + 5, spawn.Position.z))

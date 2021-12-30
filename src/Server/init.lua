@@ -1,8 +1,11 @@
 --!strict
 
---- @class ChickynoidServer
---- @server
---- Server namespace for the Chickynoid package.
+--[=[
+    @class ChickynoidServer
+    @server
+
+    Server namespace for the Chickynoid package.
+]=]
 
 local Players = game:GetService("Players")
 
@@ -10,11 +13,14 @@ local ServerCharacter = require(script.ServerCharacter)
 
 local ChickynoidServer = {}
 
---- Spawns a new Chickynoid character for the specified player, handles loading
---- their appearance and replicates the new character.
---- @param player Player -- The player to spawn this Chickynoid for.
---- @return ServerCharacter -- New character instance made for this player.
---- @yields
+--[=[
+    Spawns a new Chickynoid character for the specified player, handles loading
+    their appearance and replicates the new character.
+
+    @param player Player -- The player to spawn this Chickynoid for.
+    @return ServerCharacter -- New character instance made for this player.
+    @yields
+]=]
 function ChickynoidServer.SpawnForPlayerAsync(player: Player)
     local description = Players:GetHumanoidDescriptionFromUserId(player.UserId)
     local character = ServerCharacter.new(player, description)
