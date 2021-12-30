@@ -26,14 +26,14 @@ It implements "rollback" style networking on the client, so if the server disagr
 
 Players can't move cheat with this. At all*
 The version of the chickynoid on the server is ground-truth, so its perfect for doing server-side checks for touching triggers and other gameplay uses that humanoid isn't good at.
-The chickynoid player controller code is fairly simple, and easy to customize.
-
-
+The chickynoid player controller code is fairly straightforward. 
+Turn speed, braking, max speed, "step up size" and acceleration are much easier to tune than in default roblox.
 
 
 
 **How does it do it?**
 
+TBD! 
 
 
 
@@ -50,8 +50,11 @@ This doesn't replace even a significant subset of what
 
 
 **Whats todo**
+
 Buffer underrun detection "Antiwarp" (so technically freezing your character is still possible right now)
+
 Delta time validation (so technically speed cheating is still possible right now)
+
 Character rendering (we dont replicate the avatar yet)
 
 
