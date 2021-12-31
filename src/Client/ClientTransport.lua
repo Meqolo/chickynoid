@@ -16,8 +16,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Signal = require(Packages:WaitForChild("Signal"))
+local Vendor = script.Parent.Parent:WaitForChild("Vendor")
+local Signal = require(Vendor:WaitForChild("Signal"))
 
 local REMOTE_NAME = "Chickynoid_Replication"
 local CachedRemote: RemoteEvent
