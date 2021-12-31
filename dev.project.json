@@ -3,6 +3,7 @@
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "Packages": {
         "$path": "Packages",
         "Chickynoid": {
@@ -11,12 +12,15 @@
       }
     },
     "ServerScriptService": {
+      "$className": "ServerScriptService",
       "Server": {
         "$path": "example/server"
       }
     },
     "StarterPlayer": {
+      "$className": "StarterPlayer",
       "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
         "Client": {
           "$path": "example/client"
         }
@@ -29,6 +33,7 @@
       }
     },
     "Workspace": {
+      "$className": "Workspace",
       "$path": "example/workspace",
       "$ignoreUnknownInstances": true,
       "$properties": {
@@ -36,6 +41,7 @@
       }
     },
     "Lighting": {
+      "$className": "Lighting",
       "$path": "example/lighting",
       "$properties": {
         "Ambient": [
@@ -57,6 +63,7 @@
       }
     },
     "SoundService": {
+      "$className": "SoundService",
       "$properties": {
         "RespectFilteringEnabled": true
       }
