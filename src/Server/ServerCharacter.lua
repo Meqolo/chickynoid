@@ -40,6 +40,7 @@ function ServerCharacter.new(player: Player)
     -- TODO: The simulation shouldn't create a debug model like this.
     -- For now, just delete it server-side.
     self._simulation.debugModel:Destroy()
+    self._simulation.whiteList = { workspace.GameArea, workspace.Terrain }
 
     self._transport.OnEventReceived:Connect(function(event)
         self:_handleClientEvent(event)
