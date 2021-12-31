@@ -10,8 +10,14 @@
 local Players = game:GetService("Players")
 
 local ServerCharacter = require(script.ServerCharacter)
+local ServerTransport = require(script.ServerTransport)
 
 local ChickynoidServer = {}
+
+function ChickynoidServer.Setup()
+    -- TODO: Move this into a proper public method
+    ServerTransport._getRemoteEvent()
+end
 
 --[=[
     Spawns a new Chickynoid character for the specified player, handles loading

@@ -4,7 +4,7 @@
     @class ServerCharacter
     @server
 
-    Server-side character which exposes methods for manipulating a players character,
+    Server-side character which exposes methods for manipulating a player's character,
     such as teleporting and applying impulses.
 ]=]
 
@@ -21,7 +21,7 @@ local ServerCharacter = {}
 ServerCharacter.__index = ServerCharacter
 
 --[=[
-    Constructs a new ServerCharacter and attaches it to the specified player.
+    Constructs a new [ServerCharacter] and attaches it to the specified player.
     @return ServerCharacter
 ]=]
 function ServerCharacter.new(player: Player)
@@ -41,7 +41,7 @@ function ServerCharacter.new(player: Player)
     -- For now, just delete it server-side.
     self._simulation.debugModel:Destroy()
 
-    self._transport.onEventReceived:Connect(function(event)
+    self._transport.OnEventReceived:Connect(function(event)
         self:_handleClientEvent(event)
     end)
 
@@ -86,6 +86,7 @@ function ServerCharacter:Heartbeat(_dt: number)
         self._serverFrames = 0
 
         self._transport:QueueEvent(EventType.State, {
+            player = self.player,
             lastConfirmed = self._lastConfirmedCommand,
             state = self._simulation:WriteState(),
         })
@@ -103,7 +104,6 @@ end
     @private
 ]=]
 function ServerCharacter:_handleClientEvent(event: table)
-    print("Got event from client")
     if event.type == EventType.Command then
         local command = event.data.command
         if command and typeof(command) == "table" then

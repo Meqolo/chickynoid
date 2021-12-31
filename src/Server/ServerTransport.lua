@@ -2,8 +2,8 @@
 
 --[=[
     @class ServerTransport
-    @server
     @private
+    @server
 
     Handles communication to and from individual clients on the server. Each
     player gets their own Transport and replication packets are customized
@@ -25,22 +25,26 @@ local ServerTransport = {}
 ServerTransport.__index = ServerTransport
 
 --[=[
-    Constructs a new Transport for the specified player.
+    Constructs a new [ServerTransport] for the specified player.
     @return ServerTransport
 ]=]
 function ServerTransport.new(player: Player)
     local self = setmetatable({
-        player = player,
-        onEventReceived = Signal.new(),
+        OnEventReceived = Signal.new(),
+
+        _player = player,
         _eventQueue = {},
     }, ServerTransport)
 
     local event = self:_getRemoteEvent()
-    event.OnServerEvent:Connect(function(eventPlayer, event)
+    event.OnServerEvent:Connect(function(eventPlayer, events)
         if eventPlayer ~= player then
             return
         end
-        self.onEventReceived:Fire(event)
+
+        for _, eventObj in ipairs(events) do
+            self.OnEventReceived:Fire(eventObj)
+        end
     end)
 
     return self
@@ -68,11 +72,11 @@ end
 function ServerTransport:Flush()
     local remote = self:_getRemoteEvent()
 
-    local eventCount = #self._eventQueue
-    print(("Flushing %s events"):format(eventCount))
+    -- local eventCount = #self._eventQueue
+    -- print(("Flushing %s events"):format(eventCount))
 
     local packet = self._eventQueue
-    remote:FireClient(self.player, packet)
+    remote:FireClient(self._player, packet)
 
     table.clear(self._eventQueue)
 end
@@ -88,7 +92,7 @@ function ServerTransport:_getRemoteEvent()
         return CachedRemote
     end
 
-    -- Remote hasn't be found in a previous Transport instance, check if it exists first
+    -- Remote hasn't been found in a previous Transport instance, check if it exists first
     local existingRemote = ReplicatedStorage:FindFirstChild(REMOTE_NAME)
     if existingRemote then
         CachedRemote = existingRemote
