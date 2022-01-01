@@ -52,7 +52,6 @@ function Simulation:_createDebugSphere()
         part.CanCollide = false
         part.CanQuery = false
         part.CanTouch = false
-        part.Parent = model
         part.Anchored = true
         part.TopSurface = Enum.SurfaceType.Smooth
         part.BottomSurface = Enum.SurfaceType.Smooth
@@ -62,21 +61,22 @@ function Simulation:_createDebugSphere()
 
         model.Name = "Chickynoid"
         model.PrimaryPart = part
-        model.Parent = Workspace
 
         self.debugModel = model
         self.debugMarker = part
 
         debugPart.Shape = Enum.PartType.Cylinder
         debugPart.Anchored = true
-        debugPart.Parent = model
         debugPart.CanQuery = false
         debugPart.CanCollide = false
         debugPart.CanTouch = false
         debugPart.Size = Vector3.new(0.01, 3.5, 3.5)
-
         debugPart.CFrame = CFrame.new(Vector3.new(0, PLAYER_FEET_HEIGHT))
             * CFrame.fromEulerAnglesXYZ(0, 0, math.rad(90))
+
+        model.Parent = Workspace
+        part.Parent = model
+        debugPart.Parent = model
     end
 end
 
