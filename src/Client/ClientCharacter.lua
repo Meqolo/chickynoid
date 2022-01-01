@@ -35,7 +35,7 @@ function ClientCharacter.new(player: Player, position: Vector3)
         _localFrame = 0,
     }, ClientCharacter)
 
-    self._simulation.pos = position
+    self._simulation.position = position
     self._simulation.whiteList = { workspace.GameArea, workspace.Terrain }
 
     if player == LocalPlayer then
@@ -107,7 +107,10 @@ function ClientCharacter:HandleNewState(state: table, lastConfirmed: number)
         local record = self._stateCache[lastConfirmed]
         if record then
             -- This is the state we were in, if the server agrees with this, we dont have to resim
-            if (record.state.pos - state.pos).magnitude < 0.01 and (record.state.vel - state.vel).magnitude < 0.01 then
+            if
+                (record.state.position - state.position).magnitude < 0.01
+                and (record.state.velocity - state.velocity).magnitude < 0.01
+            then
                 resimulate = false
                 -- print("skipped resim")
             end
@@ -125,13 +128,13 @@ function ClientCharacter:HandleNewState(state: table, lastConfirmed: number)
         print("resimulating")
 
         -- Record our old state
-        local oldPos = self._simulation.pos
+        local oldPos = self._simulation.position
 
         -- Reset our base simulation to match the server
         self._simulation:ReadState(state)
 
         -- Marker for where the server said we were
-        self:_spawnDebugSphere(self._simulation.pos, Color3.fromRGB(255, 170, 0))
+        self:_spawnDebugSphere(self._simulation.position, Color3.fromRGB(255, 170, 0))
 
         -- Resimulate all of the commands the server has not confirmed yet
         -- print("winding forward", #remainingCommands, "commands")
@@ -139,11 +142,11 @@ function ClientCharacter:HandleNewState(state: table, lastConfirmed: number)
             self._simulation:ProcessCommand(cmd)
 
             -- Resimulated positions
-            self:_spawnDebugSphere(self._simulation.pos, Color3.fromRGB(255, 255, 0))
+            self:_spawnDebugSphere(self._simulation.position, Color3.fromRGB(255, 255, 0))
         end
 
         -- Did we make a misprediction? We can tell if our predicted position isn't the same after reconstructing everything
-        local delta = oldPos - self._simulation.pos
+        local delta = oldPos - self._simulation.position
         if delta.magnitude > 0.01 then
             print("Mispredict:", delta)
         end
@@ -161,7 +164,7 @@ function ClientCharacter:Heartbeat(dt: number)
     self._simulation:ProcessCommand(cmd)
 
     -- Marker for positions added since the last server update
-    self:_spawnDebugSphere(self._simulation.pos, Color3.fromRGB(44, 140, 39))
+    self:_spawnDebugSphere(self._simulation.position, Color3.fromRGB(44, 140, 39))
 
     if SKIP_RESIMULATION then
         -- Add to our state cache, which we can use for skipping resims
@@ -184,14 +187,14 @@ function ClientCharacter:Heartbeat(dt: number)
     self._simulation.sweepModule.raycastsThisFrame = 0
 end
 
-function ClientCharacter:_spawnDebugSphere(pos, color)
+function ClientCharacter:_spawnDebugSphere(position, color)
     if DEBUG_SPHERES then
         local part = Instance.new("Part")
         part.Anchored = true
         part.Color = color
         part.Shape = Enum.PartType.Ball
         part.Size = Vector3.new(5, 5, 5)
-        part.Position = pos
+        part.Position = position
         part.Transparency = 0.25
         part.TopSurface = Enum.SurfaceType.Smooth
         part.BottomSurface = Enum.SurfaceType.Smooth

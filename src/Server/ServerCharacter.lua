@@ -55,14 +55,14 @@ end
     Sets the position of the character and replicates it to clients.
 ]=]
 function ServerCharacter:SetPosition(position: Vector3)
-    self._simulation.pos = position
+    self._simulation.position = position
 end
 
 --[=[
     Returns the position of the character.
 ]=]
 function ServerCharacter:GetPosition()
-    return self._simulation.pos
+    return self._simulation.position
 end
 
 --[=[
@@ -133,7 +133,7 @@ function ServerCharacter:_spawnCharacter()
     end
 
     self._transport:QueueEvent(EventType.CharacterAdded, {
-        position = self._simulation.pos,
+        position = self._simulation.position,
     })
     self._transport:Flush()
 

@@ -186,8 +186,8 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
             if value:Dot(ray) >= 0 then
                 continue
             end
-            local pos = value
-            self:_debugMarker(startPos + pos, Color3.new(0.333333, 1, 0))
+            local position = value
+            self:_debugMarker(startPos + position, Color3.new(0.333333, 1, 0))
         end
     end
 
@@ -297,9 +297,9 @@ function SweepModule:_sweepSphere(planePoint, planeNormal, startPos, endPos)
         if d0 > RADIUS and d1 < RADIUS then
             local fraction = (d0 - RADIUS) / (d0 - d1)
             fraction -= 0.001
-            local pos = ((1 - fraction) * startPos) + (fraction * endPos)
+            local position = ((1 - fraction) * startPos) + (fraction * endPos)
 
-            return pos, fraction
+            return position, fraction
         end
         --Error
         return Vector3.zero, 0

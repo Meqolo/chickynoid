@@ -190,7 +190,7 @@ function Simulation:ProcessCommand(command: table)
     end
 
     --See if our feet are dangling but we're on a ledge
-    --If so, slide/push away from the ledge pos
+    --If so, slide/push away from the ledge position
     if not onGround and onLedge then
         local ledgePosition = onLedge.Position
         local direction = Vector3.new(self.position.x - ledgePosition.x, 0, self.position.z - ledgePosition.z)
@@ -248,7 +248,7 @@ end
     the position of the ground or ledge if it is.
     @public
 
-    @param pos Vector3 -- The position from which to check
+    @param position Vector3 -- The position from which to check
     @param feetHeight number -- The height of the characters feet
 
     @return onGround RaycastResult? -- The result of the raycast if on the ground
@@ -357,8 +357,8 @@ end
 ]=]
 function Simulation:WriteState(): table
     return {
-        pos = self.position,
-        vel = self.velocity,
+        position = self.position,
+        velocity = self.velocity,
     }
 end
 
@@ -369,8 +369,8 @@ end
     @param record table -- The record from which the characters state is written
 ]=]
 function Simulation:ReadState(record: table)
-    self.position = record.pos
-    self.velocity = record.vel
+    self.position = record.position
+    self.velocity = record.velocity
 end
 
 --[=[
