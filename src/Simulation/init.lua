@@ -5,46 +5,49 @@
 
     Class for simulating the movement of the character
 ]=]
+local Workspace = game:GetService("Workspace")
 
 local Simulation = {}
 Simulation.__index = Simulation
 Simulation.sweepModule = require(script.SweepModule)
+
+local PLAYER_FEET_HEIGHT = -1.9 -- Any point below this is considered the players' foot, any point between the feet and the middle is considered a ledge
+local MAX_STEP_SIZE = 2.1
+local UNITS_PER_SECOND = 1 / 60
+local CREATE_DEBUG_SPHERE = true
+local DEBUG_SPHERE_DIAMETER = 5
 
 --[=[
     Initialises the simulation class
 ]=]
 
 function Simulation.new()
-    local self = setmetatable({}, Simulation)
+    local self = setmetatable({
+        pos = Vector3.new(0, 5, 0),
+        vel = Vector3.new(0, 0, 0),
 
-    self.pos = Vector3.new(0, 5, 0)
-    self.vel = Vector3.new(0, 0, 0)
+        jump = 0, -- Remaining jump power
+        whiteList = { Workspace },
+    }, Simulation)
 
-    --power of jumping left
-    self.jump = 0
+    self:_createDebugSphere()
 
-    self.whiteList = { game.Workspace }
+    return self
+end
 
-    --players feet height - height goes from -2.5 to +2.5
-    --So any point below this number is considered the players feet
-    --the distance between middle and feetHeight is "ledge"
-    self.feetHeight = -1.9
+--[=[
+    Creates the debug sphere if it is enabled
 
-    -- How big an object we can step over
-    self.stepSize = 2.1
+    @private
+]=]
 
-    --Scale for making units in "units per second"
-    self.perSecond = 1 / 60
-
-    local buildDebugSphereModelThing = true
-
-    if buildDebugSphereModelThing == true then
+function Simulation:_createDebugSphere()
+    if CREATE_DEBUG_SPHERE then
         local model = Instance.new("Model")
-        model.Name = "Chickynoid"
-
         local part = Instance.new("Part")
-        self.debugMarker = part
-        part.Size = Vector3.new(5, 5, 5)
+        local debugPart = Instance.new("Part")
+
+        part.Size = Vector3.new(DEBUG_SPHERE_DIAMETER, DEBUG_SPHERE_DIAMETER, DEBUG_SPHERE_DIAMETER)
         part.Shape = Enum.PartType.Ball
         part.CanCollide = false
         part.CanQuery = false
@@ -57,11 +60,13 @@ function Simulation.new()
         part.Material = Enum.Material.SmoothPlastic
         part.Color = Color3.new(0, 1, 1)
 
+        model.Name = "Chickynoid"
         model.PrimaryPart = part
-        model.Parent = game.Workspace
-        self.debugModel = model
+        model.Parent = Workspace
 
-        local debugPart = Instance.new("Part")
+        self.debugModel = model
+        self.debugMarker = part
+
         debugPart.Shape = Enum.PartType.Cylinder
         debugPart.Anchored = true
         debugPart.Parent = model
@@ -70,16 +75,10 @@ function Simulation.new()
         debugPart.CanTouch = false
         debugPart.Size = Vector3.new(0.01, 3.5, 3.5)
 
-        debugPart.CFrame = CFrame.new(Vector3.new(0, self.feetHeight)) * CFrame.fromEulerAnglesXYZ(0, 0, math.rad(90))
+        debugPart.CFrame = CFrame.new(Vector3.new(0, PLAYER_FEET_HEIGHT))
+            * CFrame.fromEulerAnglesXYZ(0, 0, math.rad(90))
     end
-
-    return self
 end
-
---	It is very important that this method rely only on whats in the cmd object
---	and no other client or server state can "leak" into here
---	or the server and client state will get out of sync.
---	You'll have to manage it so clients/server see the same thing in workspace.GameArea for raycasts...
 
 --[=[
     Processes any commands which are sent and performs required actions.
@@ -88,23 +87,26 @@ end
         - Calculate position and velocity due to jumping
         - Calculate position and velocity due to gravity
 
+    Ensure that this only relies on the data in the cmd object, and no other
+    data can leak into this. If there is other data there will be desync
+    between server and client state.
+
     @param cmd table -- The command to be processed
 ]=]
 
 function Simulation:ProcessCommand(cmd: table)
     --Ground parameters
-    local maxSpeed = 24 * self.perSecond
-    local accel = 400 * self.perSecond
-    local jumpPunch = 50 * self.perSecond
-
-    local brakeAccel = 400 * self.perSecond --how hard to brake if we're turning around
+    local maxSpeed = 24 * UNITS_PER_SECOND
+    local accel = 400 * UNITS_PER_SECOND
+    local jumpPunch = 50 * UNITS_PER_SECOND
+    local brakeAccel = 400 * UNITS_PER_SECOND --how hard to brake if we're turning around
 
     local result = nil
     local onGround = nil
     local onLedge = nil
 
     --Check ground
-    onGround, onLedge = self:DoGroundCheck(self.pos, self.feetHeight)
+    onGround, onLedge = self:DoGroundCheck(self.pos, PLAYER_FEET_HEIGHT)
 
     --Figure out our acceleration (airmove vs on ground)
     if onGround == nil then
@@ -155,7 +157,7 @@ function Simulation:ProcessCommand(cmd: table)
     --Gravity
     if onGround == nil then
         --gravity
-        self.vel += Vector3.new(0, -198 * self.perSecond * cmd.deltaTime, 0)
+        self.vel += Vector3.new(0, -198 * UNITS_PER_SECOND * cmd.deltaTime, 0)
     end
 
     --Sweep the player through the world
@@ -169,7 +171,7 @@ function Simulation:ProcessCommand(cmd: table)
     -- Do we even need to?
     if (onGround ~= nil or onLedge ~= nil) and hitSomething == true then
         --first move upwards as high as we can go
-        local headHit = self.sweepModule:Sweep(self.pos, self.pos + Vector3.new(0, self.stepSize, 0), self.whiteList)
+        local headHit = self.sweepModule:Sweep(self.pos, self.pos + Vector3.new(0, MAX_STEP_SIZE, 0), self.whiteList)
 
         --Project forwards
         local stepUpNewPos, stepUpNewVel, stepHitSomething = self:ProjectVelocity(headHit.endPos, flatVel)
@@ -179,14 +181,14 @@ function Simulation:ProcessCommand(cmd: table)
 
         local hitResult = self.sweepModule:Sweep(
             traceDownPos,
-            traceDownPos - Vector3.new(0, self.stepSize, 0),
+            traceDownPos - Vector3.new(0, MAX_STEP_SIZE, 0),
             self.whiteList
         )
 
         stepUpNewPos = hitResult.endPos
 
         --See if we're mostly on the ground after this? otherwise rewind it
-        local ground, ledge = self:DoGroundCheck(stepUpNewPos, (-2.5 + self.stepSize))
+        local ground, ledge = self:DoGroundCheck(stepUpNewPos, (-2.5 + MAX_STEP_SIZE))
 
         if ground ~= nil then
             self.pos = stepUpNewPos
