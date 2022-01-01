@@ -1,14 +1,27 @@
+--[=[
+    @class SweepModule
+
+    Used to calculate collisions
+]=]
+
 local SweepModule = {}
+SweepModule.raycastsThisFrame = 0
 
 local rings = {}
 
-local debug = 0
-SweepModule.raycastsThisFrame = 0
+local RADIUS = 2.5
+local DEBUG_MODE = false
 
-local constants = {}
-constants.radius = 2.5
+--[=[
+    Creates <steps> amount of contacts in a ring of size <steps>
+    @private
 
-function SweepModule:MakeRing(steps, radius, totalRadius)
+    @param steps number -- The number of contacts in a ring
+    @param radius number -- The radius of that specific ring
+    @param totalRadius number -- The total radius of the sphere
+]=]
+
+function SweepModule:_makeRing(steps: number, radius: number, totalRadius: number)
     local latitude = (radius * math.pi) * 0.5
     for counter = 0, steps - 1 do
         local longitude = ((math.pi * 2) / steps) * counter
@@ -21,24 +34,35 @@ function SweepModule:MakeRing(steps, radius, totalRadius)
     end
 end
 
-function SweepModule:InitRings()
-    self:MakeRing(1, 0.0, constants.radius)
-    self:MakeRing(8, 0.2, constants.radius)
-    self:MakeRing(10, 0.4, constants.radius)
-    self:MakeRing(12, 0.6, constants.radius)
-    self:MakeRing(14, 0.8, constants.radius)
-    self:MakeRing(16, 1, constants.radius)
-    self:MakeRing(14, 1.2, constants.radius)
-    self:MakeRing(12, 1.4, constants.radius)
-    self:MakeRing(10, 1.6, constants.radius)
-    self:MakeRing(8, 1.8, constants.radius)
-    self:MakeRing(1, 2.0, constants.radius)
+--[=[
+    Creates contact rings
+    @private
+]=]
+function SweepModule:_initRings()
+    self:_makeRing(1, 0.0, RADIUS)
+    self:_makeRing(8, 0.2, RADIUS)
+    self:_makeRing(10, 0.4, RADIUS)
+    self:_makeRing(12, 0.6, RADIUS)
+    self:_makeRing(14, 0.8, RADIUS)
+    self:_makeRing(16, 1, RADIUS)
+    self:_makeRing(14, 1.2, RADIUS)
+    self:_makeRing(12, 1.4, RADIUS)
+    self:_makeRing(10, 1.6, RADIUS)
+    self:_makeRing(8, 1.8, RADIUS)
+    self:_makeRing(1, 2.0, RADIUS)
 end
 
-function SweepModule:DebugMarker(pos, color)
+--[=[
+    Creates a debug marker
+    @private
+
+    @param position Vector3 -- The position of the contact
+    @param color Color3 -- The color of the contact
+]=]
+function SweepModule:_debugMarker(position, color)
     local part = Instance.new("Part")
 
-    part.Position = pos
+    part.Position = position
     part.Color = color
     part.Size = Vector3.new(0.2, 0.2, 0.2)
     part.Anchored = true
@@ -49,7 +73,15 @@ function SweepModule:DebugMarker(pos, color)
     part.CanTouch = false
 end
 
-function SweepModule:DebugBeam(a, b, color)
+--[=[
+    Creates a debug beam
+    @private
+
+    @param a number -- The first position of the beam
+    @param b number -- The second position of the beam
+    @param color Color3 -- The color of the beam
+]=]
+function SweepModule:_debugBeam(a, b, color)
     local d = (a - b).Magnitude
 
     local part = Instance.new("Part")
@@ -63,8 +95,11 @@ function SweepModule:DebugBeam(a, b, color)
     part.Parent = game.Workspace.DebugMarkers
 end
 
---Short version of ray/sphere intersection test that assumes the ray is going to either miss completely or hit the inside, perfect for capsules.
-function SweepModule:GetDepth(centerOfSphere, radius, rayPos, rayUnitDir)
+--[=[
+    Ray/sphere interaction test that assumes the ray is going to either miss completely or hit the inside, perfect for capsules.
+    @private
+]=]
+function SweepModule:_getDepth(centerOfSphere: Vector3, radius: number, rayPos: Vector3, rayUnitDir: Vector3): number
     local e = centerOfSphere - rayPos
     local esq = (e.x * e.x) + (e.y * e.y) + (e.z * e.z)
     local a = e:Dot(rayUnitDir)
@@ -74,7 +109,15 @@ function SweepModule:GetDepth(centerOfSphere, radius, rayPos, rayUnitDir)
     return a + f
 end
 
-function SweepModule:SweepForContacts(startPos, endPos, whiteList) --radius is fixed to 2.5
+--[=[
+    Checks if any contacts are colliding with an object
+    @public
+
+    @param startPos Vector3 -- The start position of the ball
+    @param endPos Vector3 -- The position the ball is trying to go to
+    @param whiteList Dictionary<number> -- Table of whitelisted objects for the raycast
+]=]
+function SweepModule:SweepForContacts(startPos: Vector3, endPos: Vector3, whiteList: Dictionary<number>): table
     --Cast a bunch of rays
 
     local raycastParams = RaycastParams.new()
@@ -88,7 +131,7 @@ function SweepModule:SweepForContacts(startPos, endPos, whiteList) --radius is f
     local mag = rayVec.Magnitude
     local ray = rayVec.Unit
 
-    for key, value in pairs(rings) do
+    for _key, value in pairs(rings) do
         if value:Dot(ray) > 0 then --We cast using the rays on the back of the sphere
             continue
         end
@@ -96,7 +139,7 @@ function SweepModule:SweepForContacts(startPos, endPos, whiteList) --radius is f
         local castPoint = startPos + value
 
         --Calculate the distance for this point along the ray to the back of the sphere (how much the ray has to be extended by to reach the other side)
-        local dist = self:GetDepth(startPos, constants.radius, castPoint, ray)
+        local dist = self:_getDepth(startPos, RADIUS, castPoint, ray)
 
         local raycastResult = workspace:Raycast(castPoint, (ray * (mag + dist)), raycastParams)
         self.raycastsThisFrame += 1
@@ -112,8 +155,14 @@ function SweepModule:SweepForContacts(startPos, endPos, whiteList) --radius is f
     return contacts
 end
 
---Returns position, normal, time
+--[=[
+    Returns position, normal and time of a collision
+    @public
 
+    @param startPos Vector3 -- The start position of the ball
+    @param endPos Vector3 -- The position the ball is trying to go to
+    @param whiteList Dictionary<number> -- Table of whitelisted objects for the raycast
+]=]
 function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
     local debugMarkers = game.Workspace:FindFirstChild("DebugMarkers")
     if debugMarkers == nil then
@@ -132,13 +181,13 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
         return { endPos = startPos, normal = nil, contact = nil, fraction = 1 }
     end
 
-    if debug >= 1 then
-        for key, value in pairs(rings) do
+    if DEBUG_MODE == true then
+        for _key, value in pairs(rings) do
             if value:Dot(ray) >= 0 then
                 continue
             end
             local pos = value
-            self:DebugMarker(startPos + pos, Color3.new(0.333333, 1, 0))
+            self:_debugMarker(startPos + pos, Color3.new(0.333333, 1, 0))
         end
     end
 
@@ -158,7 +207,7 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
 
     local fraction = 1
 
-    for key, value in pairs(rings) do
+    for _key, value in pairs(rings) do
         if value:Dot(ray) > 0 then --We cast using the rays on the back of the sphere
             continue
         end
@@ -166,18 +215,18 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
         local castPoint = startPos + value
 
         --Calculate the distance for this point along the ray to the back of the sphere (how much the ray has to be extended by to reach the other side)
-        local dist = self:GetDepth(startPos, constants.radius, castPoint, ray)
+        local dist = self:_getDepth(startPos, RADIUS, castPoint, ray)
 
         local raycastResult = workspace:Raycast(castPoint, (ray * (mag + dist)), raycastParams)
         self.raycastsThisFrame += 1
 
-        if debug >= 1 then
-            self:DebugMarker(castPoint + (ray * (dist + mag)), Color3.new(1, 0, 1))
+        if DEBUG_MODE == true then
+            self:_debugMarker(castPoint + (ray * (dist + mag)), Color3.new(1, 0, 1))
         end
 
         if raycastResult then
-            if debug >= 1 then
-                self:DebugBeam(castPoint, raycastResult.Position, Color3.new(1, 1, 0))
+            if DEBUG_MODE == true then
+                self:_debugBeam(castPoint, raycastResult.Position, Color3.new(1, 1, 0))
             end
 
             --don't collide with orthogonal stuff
@@ -212,83 +261,41 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
         bestPos = endPos - (ray * bestClipped)
 
         fraction = (startPos - bestPos).magnitude / mag
-
-        if debug >= 1 then
-            local part = Instance.new("Part")
-            part.Shape = Enum.PartType.Ball
-            part.Position = bestPos
-            part.Color = Color3.new(0.666667, 0.333333, 1)
-            part.Transparency = 0.75
-            part.Size = Vector3.new(5, 5, 5)
-            part.Anchored = true
-            part.Parent = debugMarkers
-            part.CanCollide = false
-        end
     end
 
-    if debug == true then
+    if DEBUG_MODE == true then
         if bestPos ~= nil then
-            self:DebugMarker(bestPos, Color3.new(1, 1, 1))
-
-            local part = Instance.new("Part")
-            part.Shape = Enum.PartType.Ball
-            part.Position = bestPos
-            part.Color = Color3.new(0, 0.333333, 1)
-            part.Transparency = 0.5
-            part.Size = Vector3.new(5, 5, 5)
-            part.Anchored = true
-            part.Parent = debugMarkers
-            part.CanCollide = false
+            self:_debugMarker(bestPos, Color3.new(1, 1, 1))
         end
-
-        local part = Instance.new("Part")
-        part.Shape = Enum.PartType.Ball
-        part.Position = startPos
-        part.Color = Color3.new(0.666667, 0.333333, 1)
-        part.Transparency = 0.5
-        part.Size = Vector3.new(5, 5, 5)
-        part.Anchored = true
-        part.Parent = debugMarkers
-        part.CanCollide = false
-
-        local part = Instance.new("Part")
-        part.Shape = Enum.PartType.Ball
-        part.Position = endPos
-        part.Color = Color3.new(1, 0, 0.498039)
-        part.Transparency = 0.5
-        part.Size = Vector3.new(5, 5, 5)
-        part.Anchored = true
-        part.Parent = debugMarkers
-        part.CanCollide = false
     end
 
     return { endPos = bestPos, normal = bestNormal, contact = bestContact, fraction = fraction }
 end
 
 --utilities, didn't need them!
-function SweepModule:Intersect(planeP, planeN, rayP, rayD)
+function SweepModule:_intersect(planeP, planeN, rayP, rayD)
     local d = planeP:Dot(-planeN)
     local t = -(d + rayP.Z * planeN.Z + rayP.Y * planeN.Y + rayP.X * planeN.X)
         / (rayD.Z * planeN.Z + rayD.Y * planeN.Y + rayD.X * planeN.X)
     return rayP + t * rayD
 end
 
-function SweepModule:DistanceToPlane(planeP, planeN, p)
+function SweepModule:_distanceToPlane(planeP, planeN, p)
     return planeN:Dot(p - planeP)
 end
 
-function SweepModule:SweepSphere(planePoint, planeNormal, startPos, endPos)
+function SweepModule:_sweepSphere(planePoint, planeNormal, startPos, endPos)
     --we intersected a plane
-    local d0 = self:DistanceToPlane(planePoint, planeNormal, startPos)
-    local d1 = self:DistanceToPlane(planePoint, planeNormal, endPos)
+    local d0 = self:_distanceToPlane(planePoint, planeNormal, startPos)
+    local d1 = self:_distanceToPlane(planePoint, planeNormal, endPos)
 
-    if math.abs(d0) < constants.radius then
+    if math.abs(d0) < RADIUS then
         --start stuck
         return startPos, 0
     else
         --calculate exact time of collision
-        if d0 > constants.radius and d1 < constants.radius then
-            local fraction = (d0 - constants.radius) / (d0 - d1)
+        if d0 > RADIUS and d1 < RADIUS then
+            local fraction = (d0 - RADIUS) / (d0 - d1)
             fraction -= 0.001
             local pos = ((1 - fraction) * startPos) + (fraction * endPos)
 
@@ -298,6 +305,7 @@ function SweepModule:SweepSphere(planePoint, planeNormal, startPos, endPos)
         return Vector3.zero, 0
     end
 end
-SweepModule:InitRings()
+
+SweepModule:_initRings()
 
 return SweepModule
