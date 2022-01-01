@@ -19,14 +19,15 @@ local DEBUG_SPHERE_DIAMETER = 5
 
 --[=[
     Initialises the simulation class
+    @public
 ]=]
 
 function Simulation.new()
     local self = setmetatable({
-        pos = Vector3.new(0, 5, 0),
-        vel = Vector3.new(0, 0, 0),
+        position = Vector3.new(0, 5, 0),
+        velocity = Vector3.new(0, 0, 0),
 
-        jump = 0, -- Remaining jump power
+        remainingJump = 0, -- Remaining jump power
         whiteList = { Workspace },
     }, Simulation)
 
@@ -37,7 +38,6 @@ end
 
 --[=[
     Creates the debug sphere if it is enabled
-
     @private
 ]=]
 
@@ -76,7 +76,6 @@ function Simulation:_createDebugSphere()
 
         model.Parent = Workspace
         part.Parent = model
-        debugPart.Parent = model
     end
 end
 
@@ -90,94 +89,81 @@ end
     Ensure that this only relies on the data in the cmd object, and no other
     data can leak into this. If there is other data there will be desync
     between server and client state.
+    @public
 
-    @param cmd table -- The command to be processed
+    @param command table -- The command to be processed
 ]=]
 
-function Simulation:ProcessCommand(cmd: table)
-    --Ground parameters
+function Simulation:ProcessCommand(command: table)
     local maxSpeed = 24 * UNITS_PER_SECOND
     local accel = 400 * UNITS_PER_SECOND
     local jumpPunch = 50 * UNITS_PER_SECOND
     local brakeAccel = 400 * UNITS_PER_SECOND --how hard to brake if we're turning around
 
-    local result = nil
-    local onGround = nil
-    local onLedge = nil
+    local onGround, onLedge = self:_doGroundCheck(self.position, PLAYER_FEET_HEIGHT)
+    local desiredDirection = nil
+    local flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
+    local shouldBrake = false
 
-    --Check ground
-    onGround, onLedge = self:DoGroundCheck(self.pos, PLAYER_FEET_HEIGHT)
-
-    --Figure out our acceleration (airmove vs on ground)
+    --selene: allow(empty_if)
     if onGround == nil then
+        --Figure out our acceleration (airmove vs on ground)
         --different if we're in the air?
     end
 
-    --Did the player have a movement request?
-    local wishDir = nil
-    local flatVel = Vector3.new(self.vel.x, 0, self.vel.z)
-
-    if cmd.x ~= 0 or cmd.z ~= 0 then
-        wishDir = Vector3.new(cmd.x, 0, cmd.z).Unit
+    if command.x ~= 0 or command.z ~= 0 then
+        desiredDirection = Vector3.new(command.x, 0, command.z).Unit
     end
 
-    --see if we're accelerating back against our current flatvel
-    local shouldBrake = false
-    if wishDir ~= nil and wishDir:Dot(flatVel.Unit) < -0.1 then
+    if (desiredDirection and desiredDirection:Dot(flatVelocity.Unit) < -0.1) or (onGround and not desiredDirection) then
         shouldBrake = true
     end
-    if onGround ~= nil and wishDir == nil then
-        shouldBrake = true
-    end
+
     if shouldBrake == true then
-        flatVel = self:Accelerate(Vector3.zero, maxSpeed, brakeAccel, flatVel, cmd.deltaTime)
+        flatVelocity = self:_accelerate(Vector3.zero, maxSpeed, brakeAccel, flatVelocity, command.deltaTime)
     end
 
     --movement acceleration (walking/running/airmove)
     --Does nothing if we don't have an input
-    if wishDir ~= nil then
-        flatVel = self:Accelerate(wishDir, maxSpeed, accel, flatVel, cmd.deltaTime)
+    if desiredDirection then
+        flatVelocity = self:_accelerate(desiredDirection, maxSpeed, accel, flatVelocity, command.deltaTime)
     end
 
-    self.vel = Vector3.new(flatVel.x, self.vel.y, flatVel.z)
+    self.velocity = Vector3.new(flatVelocity.x, self.velocity.y, flatVelocity.z)
 
-    --Do jumping?
-    if onGround ~= nil then
-        if self.jump > 0 then
-            self.jump -= cmd.deltaTime
+    if onGround then
+        if self.remainingJump > 0 then
+            self.remainingJump -= command.deltaTime
         end
 
         --jump!
-        if cmd.y > 0 and self.jump <= 0 then
-            self.vel += Vector3.new(0, jumpPunch * (1 + self.jump), 0)
-            self.jump = 0.2
+        if command.y > 0 and self.remainingJump <= 0 then
+            self.velocity += Vector3.new(0, jumpPunch * (1 + self.remainingJump), 0)
+            self.remainingJump = 0.2
         end
-    end
-
-    --Gravity
-    if onGround == nil then
-        --gravity
-        self.vel += Vector3.new(0, -198 * UNITS_PER_SECOND * cmd.deltaTime, 0)
+    elseif not onGround then
+        -- Gravity
+        self.velocity += Vector3.new(0, -198 * UNITS_PER_SECOND * command.deltaTime, 0)
     end
 
     --Sweep the player through the world
-    local walkNewPos, walkNewVel, hitSomething = self:ProjectVelocity(self.pos, self.vel)
+    local walkNewPos, walkNewVel, hitSomething = self:_projectVelocity(self.position, self.velocity)
 
     --STEPUP - the magic that lets us traverse uneven world geometry
     --the idea is that you redo the player movement but "if I was x units higher in the air"
     --it adds a lot of extra casts...
 
-    local flatVel = Vector3.new(self.vel.x, 0, self.vel.z)
-    -- Do we even need to?
-    if (onGround ~= nil or onLedge ~= nil) and hitSomething == true then
-        --first move upwards as high as we can go
-        local headHit = self.sweepModule:Sweep(self.pos, self.pos + Vector3.new(0, MAX_STEP_SIZE, 0), self.whiteList)
+    flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
+    if (onGround or onLedge) and hitSomething then
+        -- If we need to do so, then we first move up as high as we can, then project forward before tracing down again
 
-        --Project forwards
-        local stepUpNewPos, stepUpNewVel, stepHitSomething = self:ProjectVelocity(headHit.endPos, flatVel)
-
-        --Trace back down
-        local traceDownPos = stepUpNewPos
+        local headHit = self.sweepModule:Sweep(
+            self.position,
+            self.position + Vector3.new(0, MAX_STEP_SIZE, 0),
+            self.whiteList
+        )
+        local stepUpPos, stepUpVel, _stepHit = self:_projectVelocity(headHit.endPos, flatVelocity)
+        local traceDownPos = stepUpPos
 
         local hitResult = self.sweepModule:Sweep(
             traceDownPos,
@@ -185,83 +171,82 @@ function Simulation:ProcessCommand(cmd: table)
             self.whiteList
         )
 
-        stepUpNewPos = hitResult.endPos
+        stepUpPos = hitResult.endPos
 
         --See if we're mostly on the ground after this? otherwise rewind it
-        local ground, ledge = self:DoGroundCheck(stepUpNewPos, (-2.5 + MAX_STEP_SIZE))
+        local nowOnGround, _onLedge = self:_doGroundCheck(stepUpPos, (-2.5 + MAX_STEP_SIZE))
 
-        if ground ~= nil then
-            self.pos = stepUpNewPos
-            self.vel = stepUpNewVel
+        if nowOnGround then
+            self.position = stepUpPos
+            self.velocity = stepUpVel
         else
-            --cancel the whole thing
-            --NO STEPUP
-            self.pos = walkNewPos
-            self.vel = walkNewVel
+            self.position = walkNewPos
+            self.velocity = walkNewVel
         end
     else
         --NO STEPUP
-        self.pos = walkNewPos
-        self.vel = walkNewVel
+        self.position = walkNewPos
+        self.velocity = walkNewVel
     end
 
     --See if our feet are dangling but we're on a ledge
     --If so, slide/push away from the ledge pos
-    if onGround == nil and onLedge ~= nil then
-        local pos = onLedge.Position
+    if not onGround and onLedge then
+        local ledgePosition = onLedge.Position
+        local direction = Vector3.new(self.position.x - ledgePosition.x, 0, self.position.z - ledgePosition.z)
+        flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
 
-        local dir = Vector3.new(self.pos.x - pos.x, 0, self.pos.z - pos.z)
-        local flatVel = Vector3.new(self.vel.x, 0, self.vel.z)
-
-        local velChange = self:Accelerate(dir.unit, maxSpeed, 2, flatVel, cmd.deltaTime)
-        if velChange.x == velChange.x then --nan check
-            self.vel = Vector3.new(velChange.x, self.vel.y, velChange.z)
+        local velocityChange = self:_accelerate(direction.unit, maxSpeed, 2, flatVelocity, command.deltaTime)
+        if velocityChange.x == velocityChange.x then --nan check
+            self.velocity = Vector3.new(velocityChange.x, self.velocity.y, velocityChange.z)
         end
     end
 
     --position the debug visualizer
     if self.debugModel then
-        self.debugModel:PivotTo(CFrame.new(self.pos))
+        self.debugModel:PivotTo(CFrame.new(self.position))
     end
 end
 
 --[=[
     Calculates final velocity from a desired direction, speed and acceleration over a given time
+    @private
 
-    @param wishdir Vector3 -- The desired direction
-    @param wishspeed Vector3 -- The desired speed
-    @param accel Vector3 -- The desired acceleration not accounting for time taken 
-    @param velocity Vector3 -- The initial velocity of the character
-    @param dt number -- The time taken to accelerate
+    @param desiredDirection Vector3 -- The desired direction
+    @param desiredSpeed Vector3 -- The desired speed
+    @param acceleration number -- The desired acceleration not accounting for time taken 
+    @param initialVelocity Vector3 -- The initial velocity of the character
+    @param deltaTime number -- The time taken to accelerate
 
     @return finalVelocity Vector3 -- The calculated velocity
 ]=]
-function Simulation:Accelerate(
-    wishdir: Vector3,
-    wishspeed: Vector3,
-    accel: Vector3,
-    velocity: Vector3,
-    dt: number
+function Simulation:_accelerate(
+    desiredDirection: Vector3,
+    desiredSpeed: Vector3,
+    acceleration: number,
+    initialVelocity: Vector3,
+    deltaTime: number
 ): Vector3
-    local wishVelocity = wishdir * wishspeed
-    local pushDir = wishVelocity - velocity
-    local pushLen = pushDir.Magnitude
+    local desiredVelocity = desiredDirection * desiredSpeed
+    local pushDirection = desiredVelocity - initialVelocity
+    local pushMagnitude = pushDirection.Magnitude
 
-    if pushLen < 0.01 then
-        return velocity
+    if pushMagnitude < 0.01 then
+        return initialVelocity
     end
 
-    local canPush = accel * dt * wishspeed
-    if canPush > pushLen then
-        canPush = pushLen
+    local canPush = acceleration * deltaTime * desiredSpeed
+    if canPush > pushMagnitude then
+        canPush = pushMagnitude
     end
 
-    return velocity + (pushDir.Unit * canPush)
+    return initialVelocity + (pushDirection.Unit * canPush)
 end
 
 --[=[
     Checks whether the character is on the ground or on a ledge and returns 
     the position of the ground or ledge if it is.
+    @public
 
     @param pos Vector3 -- The position from which to check
     @param feetHeight number -- The height of the characters feet
@@ -269,27 +254,25 @@ end
     @return onGround RaycastResult? -- The result of the raycast if on the ground
     @return onLedge RaycastResult? -- The result of the raycast if on a ledge
 ]=]
-function Simulation:DoGroundCheck(pos: Vector3, feetHeight: number): (RaycastResult?, RaycastResult?)
-    local contacts = self.sweepModule:SweepForContacts(pos, pos + Vector3.new(0, -0.1, 0), self.whiteList)
+function Simulation:_doGroundCheck(position: Vector3, feetHeight: number): (RaycastResult?, RaycastResult?)
+    local contacts = self.sweepModule:SweepForContacts(position, position + Vector3.new(0, -0.1, 0), self.whiteList)
     local onGround = nil
     local onLedge = nil
 
-    --check if we're on the ground
-    for key, raycastResult in pairs(contacts) do
-        --How far down the sphere was the contact
-        local dif = raycastResult.Position.y - self.pos.y
-        if dif < feetHeight then
+    for _key, raycastResult in pairs(contacts) do
+        local contactVariation = raycastResult.Position.y - self.position.y
+
+        if contactVariation < feetHeight then
             onGround = raycastResult
-            --print("og")
-        elseif dif < 0 then --Something is touching our sphere between the middle and the feet
+        elseif contactVariation < 0 then
             onLedge = raycastResult
-            --print("ledge")
         end
-        --early out
+
         if onGround and onLedge then
             return onGround, onLedge
         end
     end
+
     return onGround, onLedge
 end
 
@@ -302,7 +285,7 @@ end
 
     @return clippedVelocity Vector3 -- The clipped velocity
 ]=]
-function Simulation:ClipVelocity(input: Vector3, normal: Vector3, overbounce: number): Vector3
+function Simulation:_clipVelocity(input: Vector3, normal: Vector3, overbounce: number): Vector3
     local backoff = input:Dot(normal)
 
     if backoff < 0 then
@@ -311,92 +294,83 @@ function Simulation:ClipVelocity(input: Vector3, normal: Vector3, overbounce: nu
         backoff = backoff / overbounce
     end
 
-    local changex = normal.x * backoff
-    local changey = normal.y * backoff
-    local changez = normal.z * backoff
+    local change = normal * backoff
 
-    return Vector3.new(input.x - changex, input.y - changey, input.z - changez)
+    return input - change
 end
 
 --[=[
     Project the velocity and check if any objects are collided with, then clip the velocity if there is
 
-    @param startPos Vector3 -- The initial position before projecting velocity
-    @param startVel Vector3 -- The unclipped and unprojected velocity which is being moved at
+    @param initialPosition Vector3 -- The initial position before projecting velocity
+    @param initialVelocity Vector3 -- The unclipped and unprojected velocity which is being moved at
 
     @return movePos Vector3 -- The position to move to
     @return moveVel Vector3 -- The velocity to move to
     @return hitSomething boolean -- Whether an object was hit
 ]=]
-function Simulation:ProjectVelocity(startPos: Vector3, startVel: Vector3): (Vector3, Vector3, boolean)
-    local movePos = startPos
-    local moveVel = startVel
+function Simulation:_projectVelocity(initialPosition: Vector3, initialVelocity: Vector3): (Vector3, Vector3, boolean)
+    local movePosition = initialPosition
+    local moveVelocity = initialVelocity
     local hitSomething = false
 
     --Project our movement through the world
-    for bumps = 0, 3 do
-        if moveVel.Magnitude < 0.001 then
-            --done
+    for _ = 0, 3 do
+        if moveVelocity.Magnitude < 0.001 then
+            break
+        elseif moveVelocity:Dot(initialVelocity) < 0 then
+            moveVelocity = Vector3.zero
             break
         end
 
-        if moveVel:Dot(startVel) < 0 then
-            --we projected back in the opposite direction from where we started. No.
-            moveVel = Vector3.new(0, 0, 0)
-            break
-        end
-
-        local result = self.sweepModule:Sweep(movePos, movePos + moveVel, self.whiteList)
+        local result = self.sweepModule:Sweep(movePosition, movePosition + moveVelocity, self.whiteList)
 
         if result.fraction < 1 then
             hitSomething = true
         end
 
+        --selene: allow(empty_if)
         if result.fraction == 0 then
-            --start solid, don't do anything
-            --(this doesn't mean we wont project along a normal!)
+            --Collided with object, so do nothing. However, in future we want to implement projecting along the normal
         else
             --See if we swept the whole way?
             if result.fraction == 1 then
-                --Made it whole way
-                movePos = movePos + moveVel
-
+                movePosition += moveVelocity
                 break
-            end
-
-            if result.fraction > 0 then
-                --We moved
-                movePos = movePos + (moveVel * result.fraction)
+            elseif result.fraction > 0 then
+                movePosition += (moveVelocity * result.fraction)
             end
         end
 
         --Deflect the velocity and keep going
-        moveVel = self:ClipVelocity(moveVel, result.normal, 1.0)
+        moveVelocity = self:_clipVelocity(moveVelocity, result.normal, 1.0)
     end
-    return movePos, moveVel, hitSomething
+
+    return movePosition, moveVelocity, hitSomething
 end
 
 --[=[
     Writes the current state of the character to a record which is then returned
+    @public
 
     @return record table -- The state of the character
 ]=]
 function Simulation:WriteState(): table
-    local record = {}
-    record.pos = self.pos
-    record.vel = self.vel
-
-    return record
+    return {
+        pos = self.position,
+        vel = self.velocity,
+    }
 end
 
 --[=[
     Writes from a record to the characters' state
+    @public
 
     @param record table -- The record from which the characters state is written
 ]=]
 function Simulation:ReadState(record: table)
-    self.pos = record.pos
-    self.vel = record.vel
+    self.position = record.pos
+    self.velocity = record.vel
 end
 
 --[=[
