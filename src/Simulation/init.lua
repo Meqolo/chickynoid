@@ -102,7 +102,7 @@ function Simulation:ProcessCommand(command: table)
 
     local onGround, onLedge = self:_doGroundCheck(self.position, PLAYER_FEET_HEIGHT)
     local desiredDirection = nil
-    local flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
+    local flatVelocity = Vector3.new(self.velocity.X, 0, self.velocity.Z)
     local shouldBrake = false
 
     --selene: allow(empty_if)
@@ -129,7 +129,7 @@ function Simulation:ProcessCommand(command: table)
         flatVelocity = self:_accelerate(desiredDirection, maxSpeed, accel, flatVelocity, command.deltaTime)
     end
 
-    self.velocity = Vector3.new(flatVelocity.x, self.velocity.y, flatVelocity.z)
+    self.velocity = Vector3.new(flatVelocity.X, self.velocity.Y, flatVelocity.Z)
 
     if onGround then
         if self.remainingJump > 0 then
@@ -153,7 +153,7 @@ function Simulation:ProcessCommand(command: table)
     --the idea is that you redo the player movement but "if I was x units higher in the air"
     --it adds a lot of extra casts...
 
-    flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
+    flatVelocity = Vector3.new(self.velocity.X, 0, self.velocity.Z)
     if (onGround or onLedge) and hitSomething then
         -- If we need to do so, then we first move up as high as we can, then project forward before tracing down again
 
@@ -193,12 +193,12 @@ function Simulation:ProcessCommand(command: table)
     --If so, slide/push away from the ledge position
     if not onGround and onLedge then
         local ledgePosition = onLedge.Position
-        local direction = Vector3.new(self.position.x - ledgePosition.x, 0, self.position.z - ledgePosition.z)
-        flatVelocity = Vector3.new(self.velocity.x, 0, self.velocity.z)
+        local direction = Vector3.new(self.position.X - ledgePosition.X, 0, self.position.Z - ledgePosition.Z)
+        flatVelocity = Vector3.new(self.velocity.X, 0, self.velocity.Z)
 
         local velocityChange = self:_accelerate(direction.unit, maxSpeed, 2, flatVelocity, command.deltaTime)
-        if velocityChange.x == velocityChange.x then --nan check
-            self.velocity = Vector3.new(velocityChange.x, self.velocity.y, velocityChange.z)
+        if velocityChange.X == velocityChange.X then --nan check
+            self.velocity = Vector3.new(velocityChange.X, self.velocity.Y, velocityChange.Z)
         end
     end
 
@@ -260,7 +260,7 @@ function Simulation:_doGroundCheck(position: Vector3, feetHeight: number): (Rayc
     local onLedge = nil
 
     for _key, raycastResult in pairs(contacts) do
-        local contactVariation = raycastResult.Position.y - self.position.y
+        local contactVariation = raycastResult.Position.Y - self.position.Y
 
         if contactVariation < feetHeight then
             onGround = raycastResult
