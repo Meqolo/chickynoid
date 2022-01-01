@@ -1,7 +1,18 @@
+--!strict
+
+--[=[
+    @class Simulation
+
+    Class for simulating the movement of the character
+]=]
+
 local Simulation = {}
 Simulation.__index = Simulation
-
 Simulation.sweepModule = require(script.SweepModule)
+
+--[=[
+    Initialises the simulation class
+]=]
 
 function Simulation.new()
     local self = setmetatable({}, Simulation)
@@ -70,7 +81,17 @@ end
 --	or the server and client state will get out of sync.
 --	You'll have to manage it so clients/server see the same thing in workspace.GameArea for raycasts...
 
-function Simulation:ProcessCommand(cmd)
+--[=[
+    Processes any commands which are sent and performs required actions.
+    Actions performed are:
+        - Calculate position and velocity due to input
+        - Calculate position and velocity due to jumping
+        - Calculate position and velocity due to gravity
+
+    @param cmd table -- The command to be processed
+]=]
+
+function Simulation:ProcessCommand(cmd: table)
     --Ground parameters
     local maxSpeed = 24 * self.perSecond
     local accel = 400 * self.perSecond
@@ -202,7 +223,24 @@ function Simulation:ProcessCommand(cmd)
     end
 end
 
-function Simulation:Accelerate(wishdir, wishspeed, accel, velocity, dt)
+--[=[
+    Calculates final velocity from a desired direction, speed and acceleration over a given time
+
+    @param wishdir Vector3 -- The desired direction
+    @param wishspeed Vector3 -- The desired speed
+    @param accel Vector3 -- The desired acceleration not accounting for time taken 
+    @param velocity Vector3 -- The initial velocity of the character
+    @param dt number -- The time taken to accelerate
+
+    @return finalVelocity Vector3 -- The calculated velocity
+]=]
+function Simulation:Accelerate(
+    wishdir: Vector3,
+    wishspeed: Vector3,
+    accel: Vector3,
+    velocity: Vector3,
+    dt: number
+): Vector3
     local wishVelocity = wishdir * wishspeed
     local pushDir = wishVelocity - velocity
     local pushLen = pushDir.Magnitude
@@ -219,13 +257,17 @@ function Simulation:Accelerate(wishdir, wishspeed, accel, velocity, dt)
     return velocity + (pushDir.Unit * canPush)
 end
 
-function Simulation:Destroy()
-    if self.debugModel then
-        self.debugModel:Destroy()
-    end
-end
+--[=[
+    Checks whether the character is on the ground or on a ledge and returns 
+    the position of the ground or ledge if it is.
 
-function Simulation:DoGroundCheck(pos, feetHeight)
+    @param pos Vector3 -- The position from which to check
+    @param feetHeight number -- The height of the characters feet
+
+    @return onGround RaycastResult? -- The result of the raycast if on the ground
+    @return onLedge RaycastResult? -- The result of the raycast if on a ledge
+]=]
+function Simulation:DoGroundCheck(pos: Vector3, feetHeight: number): (RaycastResult?, RaycastResult?)
     local contacts = self.sweepModule:SweepForContacts(pos, pos + Vector3.new(0, -0.1, 0), self.whiteList)
     local onGround = nil
     local onLedge = nil
@@ -249,7 +291,16 @@ function Simulation:DoGroundCheck(pos, feetHeight)
     return onGround, onLedge
 end
 
-function Simulation:ClipVelocity(input, normal, overbounce)
+--[=[
+    Clip the velocity
+
+    @param input Vector3 -- The input velocity
+    @param normal Vector3 -- The normal of ??
+    @param overbounce number -- ??
+
+    @return clippedVelocity Vector3 -- The clipped velocity
+]=]
+function Simulation:ClipVelocity(input: Vector3, normal: Vector3, overbounce: number): Vector3
     local backoff = input:Dot(normal)
 
     if backoff < 0 then
@@ -265,7 +316,17 @@ function Simulation:ClipVelocity(input, normal, overbounce)
     return Vector3.new(input.x - changex, input.y - changey, input.z - changez)
 end
 
-function Simulation:ProjectVelocity(startPos, startVel)
+--[=[
+    Project the velocity and check if any objects are collided with, then clip the velocity if there is
+
+    @param startPos Vector3 -- The initial position before projecting velocity
+    @param startVel Vector3 -- The unclipped and unprojected velocity which is being moved at
+
+    @return movePos Vector3 -- The position to move to
+    @return moveVel Vector3 -- The velocity to move to
+    @return hitSomething boolean -- Whether an object was hit
+]=]
+function Simulation:ProjectVelocity(startPos: Vector3, startVel: Vector3): (Vector3, Vector3, boolean)
     local movePos = startPos
     local moveVel = startVel
     local hitSomething = false
@@ -313,8 +374,12 @@ function Simulation:ProjectVelocity(startPos, startVel)
     return movePos, moveVel, hitSomething
 end
 
---This could be a lot more classy!
-function Simulation:WriteState()
+--[=[
+    Writes the current state of the character to a record which is then returned
+
+    @return record table -- The state of the character
+]=]
+function Simulation:WriteState(): table
     local record = {}
     record.pos = self.pos
     record.vel = self.vel
@@ -322,10 +387,23 @@ function Simulation:WriteState()
     return record
 end
 
---This too!
-function Simulation:ReadState(record)
+--[=[
+    Writes from a record to the characters' state
+
+    @param record table -- The record from which the characters state is written
+]=]
+function Simulation:ReadState(record: table)
     self.pos = record.pos
     self.vel = record.vel
+end
+
+--[=[
+    Destroys the simulation class
+]=]
+function Simulation:Destroy()
+    if self.debugModel then
+        self.debugModel:Destroy()
+    end
 end
 
 return Simulation
