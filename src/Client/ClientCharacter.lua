@@ -18,7 +18,7 @@ DebugParts.Name = "DebugParts"
 DebugParts.Parent = workspace
 
 local SKIP_RESIMULATION = true
-local DEBUG_SPHERES = true
+local DEBUG_SPHERES = false
 local PRINT_NUM_CASTS = false
 
 local ClientCharacter = {}
@@ -92,7 +92,8 @@ function ClientCharacter:HandleNewState(state: table, lastConfirmed: number)
     local remainingCommands = {}
     for _, cmd in pairs(self._predictedCommands) do
         -- event.lastConfirmed = serial number of last confirmed command by server
-        if cmd.l > lastConfirmed then
+
+        if lastConfirmed and cmd.l > lastConfirmed then
             -- Server hasn't processed this yet
             table.insert(remainingCommands, cmd)
         end
@@ -114,7 +115,7 @@ function ClientCharacter:HandleNewState(state: table, lastConfirmed: number)
 
         -- Clear all the ones older than lastConfirmed
         for key, _ in pairs(self._stateCache) do
-            if key < lastConfirmed then
+            if lastConfirmed and key < lastConfirmed then
                 self._stateCache[key] = nil
             end
         end
