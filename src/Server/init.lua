@@ -28,7 +28,7 @@ end
     @yields
 ]=]
 function ChickynoidServer.SpawnForPlayerAsync(player: Player)
-    local description = Players:GetHumanoidDescriptionFromUserId(math.abs(player.UserId))
+    local description = Players:GetHumanoidDescriptionFromUserId(player.CharacterAppearanceId)
     local character = ServerCharacter.new(player, description)
     return character
 end
