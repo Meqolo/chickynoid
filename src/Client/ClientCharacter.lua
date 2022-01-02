@@ -27,7 +27,7 @@ ClientCharacter.__index = ClientCharacter
 function ClientCharacter.new(player: Player, position: Vector3)
     local self = setmetatable({
         _player = player,
-        _simulation = Simulation.new(),
+        _simulation = Simulation.new(player),
 
         _predictedCommands = {},
         _stateCache = {},
@@ -47,7 +47,7 @@ end
 
 function ClientCharacter:_handleLocalPlayer()
     -- Bind the camera
-    Camera.CameraSubject = self._simulation.debugModel
+    Camera.CameraSubject = self._simulation.character.model
     Camera.CameraType = Enum.CameraType.Custom
 end
 

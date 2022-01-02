@@ -1,9 +1,13 @@
+local Players = game:GetService("Players")
+
+local Character = require(script.Character)
+
 local Simulation = {}
 Simulation.__index = Simulation
 
 Simulation.sweepModule = require(script.SweepModule)
 
-function Simulation.new()
+function Simulation.new(player)
     local self = setmetatable({}, Simulation)
 
     self.pos = Vector3.new(0, 5, 0)
@@ -17,7 +21,7 @@ function Simulation.new()
     --players feet height - height goes from -2.5 to +2.5
     --So any point below this number is considered the players feet
     --the distance between middle and feetHeight is "ledge"
-    self.feetHeight = -1.9
+    self.feetHeight = -2.3
 
     -- How big an object we can step over
     self.stepSize = 2.1
@@ -25,42 +29,9 @@ function Simulation.new()
     --Scale for making units in "units per second"
     self.perSecond = 1 / 60
 
-    local buildDebugSphereModelThing = true
-
-    if buildDebugSphereModelThing == true then
-        local model = Instance.new("Model")
-        model.Name = "Chickynoid"
-
-        local part = Instance.new("Part")
-        self.debugMarker = part
-        part.Size = Vector3.new(5, 5, 5)
-        part.Shape = Enum.PartType.Ball
-        part.CanCollide = false
-        part.CanQuery = false
-        part.CanTouch = false
-        part.Parent = model
-        part.Anchored = true
-        part.TopSurface = Enum.SurfaceType.Smooth
-        part.BottomSurface = Enum.SurfaceType.Smooth
-        part.Transparency = 0.4
-        part.Material = Enum.Material.SmoothPlastic
-        part.Color = Color3.new(0, 1, 1)
-
-        model.PrimaryPart = part
-        model.Parent = game.Workspace
-        self.debugModel = model
-
-        local debugPart = Instance.new("Part")
-        debugPart.Shape = Enum.PartType.Cylinder
-        debugPart.Anchored = true
-        debugPart.Parent = model
-        debugPart.CanQuery = false
-        debugPart.CanCollide = false
-        debugPart.CanTouch = false
-        debugPart.Size = Vector3.new(0.01, 3.5, 3.5)
-
-        debugPart.CFrame = CFrame.new(Vector3.new(0, self.feetHeight)) * CFrame.fromEulerAnglesXYZ(0, 0, math.rad(90))
-    end
+    self.character = Character.new(player)
+    self.character:CreateCharacterModel()
+    self.sweepModule:InitContacts(self.character.model.HumanoidRootPart.Size)
 
     return self
 end
@@ -199,6 +170,10 @@ function Simulation:ProcessCommand(cmd)
     --position the debug visualizer
     if self.debugModel then
         self.debugModel:PivotTo(CFrame.new(self.pos))
+    end
+
+    if self.character then
+        self.character:SetCharacterPosition(self.pos)
     end
 end
 

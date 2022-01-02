@@ -2,37 +2,33 @@ local SweepModule = {}
 
 local rings = {}
 
-local debug = 0
+local debug = 1
 SweepModule.raycastsThisFrame = 0
 
 local constants = {}
 constants.radius = 2.5
 
-function SweepModule:MakeRing(steps, radius, totalRadius)
-    local latitude = (radius * math.pi) * 0.5
-    for counter = 0, steps - 1 do
-        local longitude = ((math.pi * 2) / steps) * counter
-
-        local x = totalRadius * math.cos(longitude) * math.sin(latitude)
-        local y = totalRadius * math.sin(longitude) * math.sin(latitude)
-        local z = totalRadius * math.cos(latitude)
-
-        table.insert(rings, Vector3.new(x, z, y))
+function SweepModule:MakeContacts(stepsX, stepsY, stepsZ, partSize, offsetAmount)
+    for countX = 0, stepsX - 1 do
+        local x = (partSize.X / stepsX) * countX
+        for countY = 0, stepsY - 1 do
+            local y = (partSize.Y / stepsY) * countY
+            for countZ = 0, stepsZ - 1 do
+                local z = (partSize.Z / stepsZ) * countZ
+                table.insert(rings, Vector3.new(x, y, z) + offsetAmount)
+            end
+        end
     end
 end
 
-function SweepModule:InitRings()
-    self:MakeRing(1, 0.0, constants.radius)
-    self:MakeRing(8, 0.2, constants.radius)
-    self:MakeRing(10, 0.4, constants.radius)
-    self:MakeRing(12, 0.6, constants.radius)
-    self:MakeRing(14, 0.8, constants.radius)
-    self:MakeRing(16, 1, constants.radius)
-    self:MakeRing(14, 1.2, constants.radius)
-    self:MakeRing(12, 1.4, constants.radius)
-    self:MakeRing(10, 1.6, constants.radius)
-    self:MakeRing(8, 1.8, constants.radius)
-    self:MakeRing(1, 2.0, constants.radius)
+function SweepModule:InitContacts(partSize)
+    self:MakeContacts(5, 5, 1, partSize, Vector3.new(0, 0, partSize.Z / 2))
+    self:MakeContacts(5, 5, 1, partSize, Vector3.new(0, 0, -partSize.Z / 2))
+
+    self:MakeContacts(1, 5, 1, partSize, Vector3.new(partSize.X / 2, 0, 0))
+    self:MakeContacts(1, 5, 1, partSize, Vector3.new(-partSize.X / 2, 0, 0))
+    self:MakeContacts(5, 1, 1, partSize, Vector3.new(0, partSize / 2, 0))
+    self:MakeContacts(5, 1, 1, partSize, Vector3.new(0, -partSize / 2, 0))
 end
 
 function SweepModule:DebugMarker(pos, color)
@@ -66,6 +62,8 @@ end
 --Short version of ray/sphere intersection test that assumes the ray is going to either miss completely or hit the inside, perfect for capsules.
 function SweepModule:GetDepth(centerOfSphere, radius, rayPos, rayUnitDir)
     local e = centerOfSphere - rayPos
+    -- print(e)
+    -- self:DebugMarker(e + centerOfSphere, Color3.new(1, 0, 0))
     local esq = (e.x * e.x) + (e.y * e.y) + (e.z * e.z)
     local a = e:Dot(rayUnitDir)
     local b = math.sqrt(esq - (a * a))
@@ -97,6 +95,7 @@ function SweepModule:SweepForContacts(startPos, endPos, whiteList) --radius is f
 
         --Calculate the distance for this point along the ray to the back of the sphere (how much the ray has to be extended by to reach the other side)
         local dist = self:GetDepth(startPos, constants.radius, castPoint, ray)
+        -- print(dist)
 
         local raycastResult = workspace:Raycast(castPoint, (ray * (mag + dist)), raycastParams)
         self.raycastsThisFrame += 1
@@ -138,6 +137,7 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
                 continue
             end
             local pos = value
+            print(startPos)
             self:DebugMarker(startPos + pos, Color3.new(0.333333, 1, 0))
         end
     end
@@ -266,38 +266,38 @@ function SweepModule:Sweep(startPos, endPos, whiteList) --radius is fixed to 2.5
 end
 
 --utilities, didn't need them!
-function SweepModule:Intersect(planeP, planeN, rayP, rayD)
-    local d = planeP:Dot(-planeN)
-    local t = -(d + rayP.Z * planeN.Z + rayP.Y * planeN.Y + rayP.X * planeN.X)
-        / (rayD.Z * planeN.Z + rayD.Y * planeN.Y + rayD.X * planeN.X)
-    return rayP + t * rayD
-end
+-- function SweepModule:Intersect(planeP, planeN, rayP, rayD)
+--     local d = planeP:Dot(-planeN)
+--     local t = -(d + rayP.Z * planeN.Z + rayP.Y * planeN.Y + rayP.X * planeN.X)
+--         / (rayD.Z * planeN.Z + rayD.Y * planeN.Y + rayD.X * planeN.X)
+--     return rayP + t * rayD
+-- end
 
-function SweepModule:DistanceToPlane(planeP, planeN, p)
-    return planeN:Dot(p - planeP)
-end
+-- function SweepModule:DistanceToPlane(planeP, planeN, p)
+--     return planeN:Dot(p - planeP)
+-- end
 
-function SweepModule:SweepSphere(planePoint, planeNormal, startPos, endPos)
-    --we intersected a plane
-    local d0 = self:DistanceToPlane(planePoint, planeNormal, startPos)
-    local d1 = self:DistanceToPlane(planePoint, planeNormal, endPos)
+-- function SweepModule:SweepSphere(planePoint, planeNormal, startPos, endPos)
+--     --we intersected a plane
+--     local d0 = self:DistanceToPlane(planePoint, planeNormal, startPos)
+--     local d1 = self:DistanceToPlane(planePoint, planeNormal, endPos)
 
-    if math.abs(d0) < constants.radius then
-        --start stuck
-        return startPos, 0
-    else
-        --calculate exact time of collision
-        if d0 > constants.radius and d1 < constants.radius then
-            local fraction = (d0 - constants.radius) / (d0 - d1)
-            fraction -= 0.001
-            local pos = ((1 - fraction) * startPos) + (fraction * endPos)
+--     if math.abs(d0) < constants.radius then
+--         --start stuck
+--         return startPos, 0
+--     else
+--         --calculate exact time of collision
+--         if d0 > constants.radius and d1 < constants.radius then
+--             local fraction = (d0 - constants.radius) / (d0 - d1)
+--             fraction -= 0.001
+--             local pos = ((1 - fraction) * startPos) + (fraction * endPos)
 
-            return pos, fraction
-        end
-        --Error
-        return Vector3.zero, 0
-    end
-end
-SweepModule:InitRings()
+--             return pos, fraction
+--         end
+--         --Error
+--         return Vector3.zero, 0
+--     end
+-- end
+-- SweepModule:InitRings()
 
 return SweepModule
